@@ -1,0 +1,35 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea/
+.vs/
+.vscode/
+*.swp
+*.swo
+
+# C# / .NET build artifacts
+bin/
+obj/
+*.csproj.user
+*.nupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# Visual Studio
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+*.vcxproj.user
+*.user
+*.suo
+*.sdf
+*.opensdf
+.vsconfig
+[Dd]ebug/
+[Rr]elease/
+[Xx]64/
+[Xx]86/
+[Aa][Rr][Mm]64/
