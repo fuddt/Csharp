@@ -1,3 +1,4 @@
+'''
 using System;
 
 class Program
@@ -35,3 +36,4 @@ class Program
         Console.WriteLine($"角度表記 (度数法) : {degree:F2} 度");
     }
 }
+'''
