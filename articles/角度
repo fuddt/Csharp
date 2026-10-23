@@ -1,0 +1,37 @@
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // 始点 (0, 0) と 終点 (1, 1) の定義
+        double startX = 0.0;
+        double startY = 0.0;
+        double endX = 1.0;
+        double endY = 1.0;
+
+        // 1. 始点から終点への変位（差分）を計算する
+        double dx = endX - startX; // 1.0 - 0.0 = 1.0
+        double dy = endY - startY; // 1.0 - 0.0 = 1.0
+
+        // 2. Math.Atan2 で角度（ラジアン）を取得する
+        // 注意: 第1引数が Y、第2引数が X
+        // 戻り値の範囲は -π ～ +π (-180度 ～ +180度)
+        double radian = Math.Atan2(dy, dx);
+
+        // 3. 範囲を 0 ～ 2π (0度 ～ 360度) に正規化する
+        // Yがマイナス（第3・第4象限）の場合、Atan2は負の値を返すため、2π を足して正の角度に変換する
+        if (radian < 0)
+        {
+            radian += 2 * Math.PI;
+        }
+
+        // 4. ラジアンから度数法（角度表記）へ変換する
+        // 変換式: ラジアン × (180 / π)
+        double degree = radian * (180.0 / Math.PI);
+
+        // 結果の出力
+        Console.WriteLine($"ラジアン (0～2π) : {radian:F6} (π/4)");
+        Console.WriteLine($"角度表記 (度数法) : {degree:F2} 度");
+    }
+}
