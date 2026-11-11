@@ -1,0 +1,32 @@
+name: WinForms dynamic UI sample
+
+on:
+  push:
+    paths:
+      - 'samples/WinFormsDynamicUi/**'
+      - '.github/workflows/winforms-dynamic-ui-sample.yml'
+  pull_request:
+    paths:
+      - 'samples/WinFormsDynamicUi/**'
+      - '.github/workflows/winforms-dynamic-ui-sample.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-smoke-test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: samples/WinFormsDynamicUi
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build solution
+        run: dotnet build WinFormsDynamicUi.sln --configuration Release --warnaserror
+      - name: Exercise views and disposal on Windows
+        run: dotnet run --project SmokeTests/SmokeTests.csproj --configuration Release --no-build
