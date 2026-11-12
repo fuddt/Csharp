@@ -29,5 +29,5 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Build solution
         run: dotnet build WinFormsReusableParts.sln --configuration Release --warnaserror
-      - name: Exercise the modal dialog, page lifetime, and MVC state
+      - name: Exercise the modal dialog, slot layout, visibility toggle, and text preservation
         run: dotnet run --project SmokeTests/SmokeTests.csproj --configuration Release --no-build

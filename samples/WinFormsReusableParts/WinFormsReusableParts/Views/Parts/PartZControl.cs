@@ -1,6 +1,8 @@
+using WinFormsReusableParts.Contracts;
+
 namespace WinFormsReusableParts.Views.Parts;
 
-public partial class PartZControl : UserControl
+public partial class PartZControl : UserControl, ICheckedTextSource
 {
     public PartZControl()
     {

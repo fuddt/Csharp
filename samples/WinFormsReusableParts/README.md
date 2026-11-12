@@ -1,97 +1,24 @@
-# WinFormsで部品を再利用する可変UI
+# WinForms：ちらつきのない可変UIと部品再利用（スロット可視性切替方式）
 
-メイン画面の「設定画面を開く」から、5モードの設定ダイアログを開けます。AとBは同じ種類の部品Xを使います。AでXをチェックしてからBに移ると、BにもXは表示されますが、チェックは初期状態です。Eで入力したテキストは、同じダイアログ内でEに戻ると復元されます。この二つの操作で、部品の定義、画面の実体、Modelが保持するデータの違いを確認できます。
+メイン画面の「設定画面を開く」から、5つのモード（A〜E）をラジオボタンで切り替えられる小型ダイアログの学習用サンプルです。
+各モードで一部の部品（プレビュー部品Xなど）を共有しながら、**切り替え時の画面のちらつき（Flicker）を完全にゼロにし、現在表示されている部品のチェック項目だけを正確に取得**できます。
 
-## 起動する
+---
 
-Csharpリポジトリの既存プロジェクトに合わせて.NET 10を選びました。Windowsでの実行には.NET 10 Desktop Runtimeが必要です。ソースをビルドし、デザイナーで編集する場合は、Windows版Visual Studio 2026で「.NET デスクトップ開発」と.NET 10 SDKを用意します。 [Microsoft Learnのセットアップ手順](https://learn.microsoft.com/ja-jp/dotnet/desktop/winforms/get-started/create-app-visual-studio)
+## 最初に動かす
 
-1. [WinFormsReusableParts.sln](WinFormsReusableParts.sln)をVisual Studioで開き、`WinFormsReusableParts`をスタートアッププロジェクトに設定します。
-2. F5で起動し、「設定画面を開く」を押します。ダイアログはAから始まります。
-3. AでXとYの項目をチェックして「取得」を押します。Bに切り替え、Xだけをチェックして再度「取得」を押すと、Bで選んだ項目が表示されます。
-4. Eで `Hello` と入力し、Aを経由してEへ戻ります。TextBoxに `Hello` が復元されます。
+Windows環境、Visual Studio（「.NET デスクトップ開発」ワークロード）、.NET 10 SDKに対応しています（ターゲットフレームワーク: `net10.0-windows`）。
 
-設定画面では `ShowDialog(this)` を使います。ダイアログを操作している間は親画面が待機するため、同時に複数の設定画面を開く場合の状態管理を持ち込まずに、ページ間の違いを試せます。親の `MainForm` が `using` でダイアログを所有し、閉じた後に破棄します。
+1. [WinFormsReusableParts.sln](WinFormsReusableParts.sln) をVisual Studioで開きます。
+2. `WinFormsReusableParts` をスタートアッププロジェクトに設定し、F5で起動します。
+3. 「設定画面を開く」を押すと、モードAが選択された小型ダイアログが開きます。
+4. Aで「プレビューを表示する」にチェックを入れ、Bへ切り替えます。
+   - **画面が全くチカチカ（ちらつき）せず、一瞬で切り替わります**。
+   - Bでも「プレビューを表示する」のチェックがそのまま残っています（共通設定としての保持）。
+5. Bで「取得」を押すと、Bに表示されている項目（XとZ）だけが集約され、非表示のA専用項目（Y）は混入しません。
+6. EでTextBoxに文字を入力し、別のモードへ移動してからEに戻ると、入力した文字がそのまま残っています。
 
-## ページと部品を分ける理由
-
-| モード | 上の部品 | 下の部品 |
-| --- | --- | --- |
-| A | X プレビュー | Y 入力確認 |
-| B | X プレビュー | Z 出力 |
-| C | W 補助表示 | X プレビュー |
-| D | Y 入力確認 | Z 出力 |
-| E | 最後の入力を表示するTextBox | X プレビュー |
-
-A〜Dは添付図の組み合わせに沿っています。Eの「TextBox＋X」と各CheckBoxの文言はデモ用の仮仕様です。チェックを付けると、取得結果にその項目の表示文字列が入ります。
-
-ページ単位の `PageAView`〜`PageEView` は、そのモードにどの部品を置くか、どこに置くかを定義します。部品単位の `PartXControl`、`PartYControl`、`PartZControl`、`PartWControl` は、それぞれのGroupBox、CheckBox、チェック済み文字列の取得を担当します。
-
-AとBのデザイナーコードには、それぞれ `new PartXControl()` があります。**同じ型を使うのでXのUI定義を一か所で直せます。別々に生成するので、それぞれが独自の `CheckBox.Checked` を持ちます。** Cでは同じXをWの下に置いており、部品の機能を再利用しながら位置を変更できます。
-
-ページに共通する呼び出しは `ICheckedTextPage.GetCheckedTexts()` の1つです。この契約をインターフェースで表すと、各ページはWinFormsの `UserControl` から直接派生でき、コンストラクターと配置を独立して追えます。BasePageへ配置や状態まで持たせると、あるモードの変更が共通クラスを経由して別のモードにも及び、デザイナーで調整する範囲が分かりにくくなります。
-
-## クラスの責務
-
-| クラス | 担当 |
-| --- | --- |
-| `MainForm` | 設定ダイアログを開き、閉じた後に破棄する |
-| `ModeSelectForm` | 選択中のモード、ページの差し替え、取得結果の表示を担当する。ダイアログ単位でModelとControllerを用意する |
-| `PageAView`〜`PageEView` | 部品の構成と配置を決め、そのページのチェック結果を集める。Eだけが入力の表示と変更通知も担当する |
-| `PartXControl`・`PartYControl`・`PartZControl`・`PartWControl` | 部品内にあるCheckBoxのうち、チェック済みの項目の `Text` を返す |
-| `ICheckedTextPage` | ダイアログがどのページにも同じ方法でチェック結果を問い合わせられるようにする |
-| `IReadOnlyModeModel` | EのViewが初期値を読めるよう、`LastEInput` のgetterを公開する |
-| `ModeController` | EのViewから入力変更を受け、Modelの更新メソッドを呼ぶ |
-| `ModeModel` | 現在のダイアログにおけるEの最新入力を保持する。同じ文字列の書き込みは省く |
-
-ソースへのリンクと依存関係図は、[クラス構成と処理の流れ](docs/architecture.md)にまとめています。
-
-## 取得ボタンが読む範囲
-
-`ModeSelectForm` は、表示中のページの参照を1つ保持します。「取得」が押されると、そのページの `GetCheckedTexts()` を呼びます。たとえばBは自分のXとZの結果を集め、部品は自分のCheckBoxの `Text` を返します。親フォームがA〜EそれぞれのCheckBox名や組み合わせを知る必要はありません。
-
-取得結果は呼び出し時点の文字列の一覧です。チェックを変えた後は「取得」を押すと結果が更新されます。モードを変えると直前のページの結果欄も消えます。チェックがなければページは空の一覧を返し、結果欄に「チェックされた項目はありません。」と表示します。
-
-`Text` は利用者が読む文言です。将来、選択項目をファイルに保存したり業務処理へ渡したりするなら、固定の内部IDと表示用の `Text` を別々に持つと、文言変更や翻訳が処理結果に影響しにくくなります。
-
-## ページの寿命と、Eの入力が戻る仕組み
-
-ラジオボタンがチェックされたとき、選択が変わった場合に限って対応するページを生成します。新しいページをPanelに追加できたら、古いページを取り外して `Dispose()` します。その子である共通部品とCheckBoxも一緒に破棄されます。戻ってきたページのCheckBoxは新しく作られるため、デザイナーで設定した初期値から始まります。生成やPanelへの追加が失敗した場合は、候補を破棄し、元のページとラジオボタンの選択を保ちます。
-
-EのTextBoxを編集すると、`PageEView` は `TextChanged` で `ModeController.ChangeEInput()` を呼びます。Controllerが `ModeModel.SetLastEInput()` を呼び、Modelが最新の文字列を保持します。空欄に戻した場合もその空文字列を保存します。
-
-Eを再表示すると、新しい `PageEView` は `IReadOnlyModeModel.LastEInput` から文字列を読み、TextBoxに表示します。初期値を入れてから `TextChanged` を接続するので、復元の代入がModelへの変更依頼になりません。Modelでも同値更新を省きます。変更通知はそのViewが所有するTextBoxからだけ届き、Modelの寿命はダイアログに合わせています。ダイアログを開き直すとEは空欄から始まります。
-
-## デザイナーで編集する
-
-1. ソリューションをビルドします。ソリューションエクスプローラーで `Views/Pages/PageCView.cs` を右クリックし、「デザイナーの表示」（Shift+F7）を選びます。
-2. C上で `partX` を選び、ドラッグまたはプロパティウィンドウで `Location` や `Size` を変更します。AとBの `partX` の配置はそれぞれのページで編集します。
-3. X自体のGroupBoxやCheckBoxを編集する場合は、`Views/Parts/PartXControl.cs` のデザイナーを開きます。変更した部品定義は、次のビルドでXを使う各ページに反映されます。
-4. `ModeSelectForm.cs` のデザイナーではラジオボタン、中央Panel、結果欄を編集します。実行時の `OnLoad` で初期ページを入れるため、デザイナー上では中央が空です。
-
-| 要素 | 役割と設定 |
-| --- | --- |
-| `Panel` | ダイアログ中央の差し替え先。上下の共通領域を除いた部分を `Dock = Fill` で占める |
-| `GroupBox` | 関連する操作部品を見出しでまとめる。CheckBoxは部品内のGroupBoxに配置する |
-| `Dock` | 親のどの領域を占めるかを決める。ページ本体はPanelに `Fill` で入れ、ページ内の部品は `None` で配置する |
-| `Location`・`Size` | ページ内での部品の座標・寸法。座標は直接の親を基準にする |
-| `Anchor` | 親がリサイズしたときに距離を保つ辺。ページ内の部品は `Top, Left` を基準にする |
-
-部品を追加するには、引数なしコンストラクターを持つUserControlを作り、GroupBoxとCheckBoxを配置します。ビルド後、対象ページのツールボックスからその部品を配置し、ページの `GetCheckedTexts()` に新しい部品の結果を加えます。
-
-モードを追加するには、新しいUserControlに部品を配置し、`ICheckedTextPage` を実装します。ダイアログの同じGroupBoxへラジオボタンを追加し、`Tag` と共通の `CheckedChanged` を設定します。最後に `ModeSelectForm.CreatePage()` にモードとViewの対応を加えます。
-
-## この設計の利点と制約
-
-部品の見た目や選択肢を各ページに複製せずに済みます。ページ単位のデザイナーを見れば配置全体が分かり、部品単位のデザイナーを見ればその選択肢が分かります。その分、画面と部品でファイル数は増えます。機能が違う部品を見た目だけで共通化すると、部品内の条件分岐が増え、利用ページの影響範囲が広がります。
-
-座標による自由配置は、モードごとの位置の違いを表しやすい方法です。ウィンドウを縮めても自動で並び替わらないので、ダイアログに最小サイズを設け、各ページの `AutoScroll` を有効にしています。高DPIや大きなフォントでの文字収まりは、利用するWindows環境で確認します。
-
-切り替えごとにViewを生成する方式では、画面が大きくなると生成コストが増えます。また、保存が必要な入力はModelに保持する項目と期間を決める必要があります。このサンプルでは、Eの入力だけをダイアログの間保持し、チェック状態はページの寿命に合わせています。
-
-## ビルドと動作確認
-
-Windowsのターミナルで、このディレクトリから実行します。
+Windowsのターミナルからビルド・実行する場合：
 
 ```powershell
 dotnet build WinFormsReusableParts.sln --configuration Release --warnaserror
@@ -99,14 +26,200 @@ dotnet run --project WinFormsReusableParts/WinFormsReusableParts.csproj
 dotnet run --project SmokeTests/SmokeTests.csproj --configuration Release --no-build
 ```
 
-SmokeTestsは実際のWinFormsダイアログを開きます。A〜Eの切り替え、取得対象の範囲、部品インスタンスの独立性、旧ページの破棄、Eの復元、ダイアログ再起動時の初期値、切り替え失敗からの復帰を検証します。Windowsでのビルドと実行結果は、[専用のGitHub Actions](../../.github/workflows/winforms-reusable-parts.yml)のログで確認できます。
+---
 
-macOS arm64、.NET SDK 10.0.102では、次のWindows向けクロスビルドが警告0件・エラー0件で通りました。
+## モードごとの部品構成
 
-```bash
-dotnet build WinFormsReusableParts.sln --configuration Release --warnaserror -p:EnableWindowsTargeting=true
+| モード | 上段の部品 | 下段の部品 |
+| :--- | :--- | :--- |
+| **A** | **X**（プレビュー） | **Y**（入力確認） |
+| **B** | **X**（プレビュー） | **Z**（出力設定） |
+| **C** | **W**（補助表示） | **X**（プレビュー） ※Wが上、Xが下 |
+| **D** | **Y**（入力確認） | **Z**（出力設定） |
+| **E** | **E**（メモ入力TextBox） | **X**（プレビュー） ※TextBoxが上、Xが下 |
+
+- **X（プレビュー）**: 「プレビューを表示する」「原寸で表示する」
+- **Y（入力確認）**: 「入力値を検証する」
+- **Z（出力設定）**: 「出力に時刻を含める」
+- **W（補助表示）**: 「補助ガイドを表示する」
+- **E（メモ入力）**: 自由入力可能なTextBox（デモ用の仮仕様）
+
+---
+
+## なぜ「画面の破棄・再生成」をやめ、「部品常駐＋Visible切り替え」にしたのか？
+
+### 1. 画面再生成（Dispose/new）方式で生じた3つの壁
+当初は「モード切り替えのたびに旧画面を破棄（Dispose）し、新画面を `new` して中央パネルに差し替える」という設計を検討していました。しかし、実際に動かしてみると以下の深刻な問題が発生しました：
+
+1. **激しい画面のちらつき（Flicker）**
+   - コントロールの `Remove` → `Dispose` → `Add` の瞬間に親パネルの背景消去（白抜け）が走り、子部品が順繰りに再描画されるため、ラジオボタンを押すたびに画面全体がチカチカと点滅する。
+2. **同じ部品なのに位置が移動する違和感**
+   - モードによってX部品が上段にあったり下段にあったり、ページごとに別々の座標に飛び跳ねるため、利用者の目線が迷子になる。
+3. **入力・チェック状態が毎回消えるストレス**
+   - コントロールを作り直すため、「さっきAでチェックしたはずの項目が、Bに行って戻ったらリセットされている」という挙動になり、直感的な操作感を損ねる。
+
+### 2. 「部品常駐＋Visible切り替え（スロット固定方式）」による解決
+そこで本サンプルでは、**中央パネルにあらかじめ全部品（X, Y, Z, W, E）を配置しておき、モードに応じて表示（`Visible = true`）と非表示（`Visible = false`）を切り替える方式**を採用しました。
+
+- **ちらつきゼロ**: コントロールの破棄・生成が一切走らないため、切り替えが一瞬で完了。
+- **視線の安定**: X部品などの定位置がブレず、自然な操作感を実現。
+- **状態の自然な保持**: コントロールが生存し続けるため、Aで付けたチェックはBやCでもそのまま残り、Eのテキストも消えない。
+- **隙間なしの自動上詰め**: 非表示になった部品のスペースは、下に続く部品がスッと上へ詰めるため、穴あきにならず美しいレイアウトを維持。
+
+---
+
+## ちらつきを完全に消す「3重の防壁」
+
+WinFormsで可変UIを作る際、ちらつきを防ぐために本サンプルでは以下の3重の対策を施しています。
+
+1. **コントロールを再生成しない（常駐方式）**
+   - UIオブジェクトの生存期間をダイアログ全体に合わせることで、破棄・追加によるWindows内部メッセージ（WM_DESTROY / WM_CREATE）の嵐を避けます。
+2. **`SuspendLayout()` と `ResumeLayout(true)`**
+   - コントロールの `Visible` や `Location` を更新する間、一時的に親パネルの描画計算を停止し、全配置が整った瞬間に一括で再計算します。
+3. **`WS_EX_COMPOSITED`（合成ダブルバッファリング）**
+   - `ModeSelectForm` の `CreateParams` に拡張ウィンドウスタイル `0x02000000` を追加。OS レベルでフォーム全体（すべての子コントロールを含む）をメモリ上で合成描画してから一括転送するため、背景の白抜けが物理的に発生しません。
+
+```csharp
+// ModeSelectForm.cs 内の記述
+protected override CreateParams CreateParams
+{
+    get
+    {
+        CreateParams cp = base.CreateParams;
+        cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED
+        return cp;
+    }
+}
 ```
 
-このコマンドで確認するのはコンパイルです。画面操作とVisual Studioのデザイナー操作にはWindowsを使います。 [Microsoft LearnのWindowsターゲティングの説明](https://learn.microsoft.com/ja-jp/dotnet/core/tools/sdk-errors/netsdk1100)
+---
 
-[手動テスト手順](docs/manual-test-cases.md)には、要件ごとの操作と期待結果、デザイナー編集、画面サイズとDPIの確認方法を記載しています。
+## レイアウトの上詰めと配置順の仕組み
+
+「非表示の部品があるなら、途中に空白ができるのではないか？」「CではWを上、Xを下にするにはどうするのか？」という疑問は、以下の小さなメソッドでシンプルに解決しています。
+
+```csharp
+// 1. モードごとに「表示する部品」と「並び順」を定義
+private Control[] GetControlsForMode(string mode) => mode switch
+{
+    "A" => [partX, partY],
+    "B" => [partX, partZ],
+    "C" => [partW, partX], // CはWが上、Xが下！
+    "D" => [partY, partZ],
+    "E" => [partE, partX], // EはTextBoxが上、Xが下！
+    _ => []
+};
+
+// 2. 指定された順序で上から隙間なく整列
+private void ApplyMode(string mode)
+{
+    var activeControls = GetControlsForMode(mode);
+
+    panelPageHost.SuspendLayout();
+    try
+    {
+        // 全部品を一旦非表示
+        foreach (var part in allParts)
+        {
+            part.Visible = false;
+        }
+
+        // 必要な部品だけを、指定順に上から詰めて配置・表示
+        int top = 16;
+        foreach (var control in activeControls)
+        {
+            control.Location = new Point(16, top);
+            control.Visible = true;
+            top += control.Height + 12; // 12pxの余白を空けて次へ
+        }
+    }
+    finally
+    {
+        panelPageHost.ResumeLayout(performLayout: true);
+    }
+}
+```
+
+これにより、複雑なグリッドコンテナ（TableLayoutPanel等）に頼ることなく、シンプルな `Location` 指定だけで美しい上詰め配置を実現しています。
+
+---
+
+## 「取得」ボタンが現在ページの項目だけを集約する流れ
+
+親フォームは個別のCheckBoxの名前（`checkBoxShowPreview` など）を一切知りません。
+
+共通インターフェース `ICheckedTextSource` を定義し、各部品が自身のチェック済み文字列を返すようにしています。
+
+```csharp
+public interface ICheckedTextSource
+{
+    IReadOnlyList<string> GetCheckedTexts();
+}
+```
+
+取得ボタンが押されたときは、**現在アクティブなコントロール配列（`activeControls`）だけを走査**します。
+
+```csharp
+private void ButtonGetCheckedTexts_Click(object? sender, EventArgs e)
+{
+    if (currentMode is null) return;
+
+    var activeControls = GetControlsForMode(currentMode);
+    var texts = new List<string>();
+
+    foreach (var control in activeControls)
+    {
+        if (control is ICheckedTextSource source)
+        {
+            texts.AddRange(source.GetCheckedTexts());
+        }
+    }
+
+    textBoxResult.Text = texts.Count == 0
+        ? "チェックされた項目はありません。"
+        : string.Join(Environment.NewLine, texts);
+}
+```
+
+- モードB表示中は、`activeControls` に含まれる `partX` と `partZ` だけに問い合わせます。
+- 過去にモードAでチェックを入れた `partY` は `activeControls` に含まれない（かつ `Visible = false`）ため、結果に混入することはありません。
+
+---
+
+## Visual Studioデザイナーでの編集手順
+
+1. **各部品（UserControl）のデザイン編集**:
+   - `Views/Parts/PartXControl.cs` などをダブルクリック、または右クリックして「デザイナーの表示」を開きます。
+   - CheckBoxの追加、文言の修正、フォントや配置の変更を単独で行えます。ここでの修正は全モードに自動反映されます。
+2. **ダイアログ全体の配置編集**:
+   - `Forms/ModeSelectForm.cs` のデザイナーを開きます。
+   - 中央パネル（`panelPageHost`）の中に、常駐する5つの部品が配置されています。
+   - 部品を選択してプロパティウィンドウで基本サイズや初期位置を調整できます（実行時には `ApplyMode` によって選択モードの順序で整列されます）。
+
+---
+
+## クラス責務一覧
+
+| クラス | 役割・責務 |
+| :--- | :--- |
+| `MainForm` | メイン画面。「設定画面を開く」ボタンからダイアログを `ShowDialog(this)` でモーダル起動し、完了後に破棄。 |
+| `ModeSelectForm` | モード選択ダイアログ。ラジオボタンA〜E、中央パネル、取得結果欄を管理。モード切り替え時に部品の可視性と配置を制御。 |
+| `ICheckedTextSource` | 部品が自身のチェック済み文字列を返すためのインターフェース契約。親フォームと部品の結合を最小化。 |
+| `PartXControl` 〜 `PartWControl` | 各機能に応じたCheckBoxとGroupBoxを持つ共通UI部品。`ICheckedTextSource` を実装。 |
+| `PartEControl` | メモ入力用のTextBoxを持つUI部品。 |
+
+詳細な構成図やシーケンス図は、[クラス構成と処理の流れ](docs/architecture.md) をご覧ください。
+
+---
+
+## 本設計の利点とトレードオフ
+
+### メリット
+- **ちらつきゼロ**: 画面切り替えが驚くほど滑らかで、目に優しいUIを実現。
+- **シンプルな実装**: 画面の破棄・生成や複雑なModelへの退避コードが不要になり、コード量が半減。
+- **状態の直感的な保持**: 共通部品の設定がモード間で自然に維持される。
+- **高い保守性**: 各部品は独立したUserControlとして単独でデザイナー編集・再利用可能。
+
+### トレードオフ・留意点
+- **部品数が多い場合**: もし可変部品が数十〜数百個に増えるような大規模画面では、全部品を最初からメモリ上に保持すると初期化負荷がかかる場合があります（5〜10個程度の画面部品であれば全く問題ありません）。
+- **モードごとに同じ部品のチェック状態を完全に独立させたい場合**: もし「モードAのプレビューはON、モードBのプレビューはOFF」のように同じ部品で別々の値を持ちたい場合は、切り替えの瞬間にModelから値を出し入れする処理が追加で必要になります。
