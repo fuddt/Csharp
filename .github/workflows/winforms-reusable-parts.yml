@@ -1,0 +1,33 @@
+name: WinForms reusable parts sample
+
+on:
+  push:
+    paths:
+      - 'samples/WinFormsReusableParts/**'
+      - '.github/workflows/winforms-reusable-parts.yml'
+  pull_request:
+    paths:
+      - 'samples/WinFormsReusableParts/**'
+      - '.github/workflows/winforms-reusable-parts.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-smoke-test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: samples/WinFormsReusableParts
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build solution
+        run: dotnet build WinFormsReusableParts.sln --configuration Release --warnaserror
+      - name: Exercise the modal dialog, page lifetime, and MVC state
+        run: dotnet run --project SmokeTests/SmokeTests.csproj --configuration Release --no-build
