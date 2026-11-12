@@ -12,7 +12,7 @@
     <Compile Update="Forms/MainForm.cs;Forms/ModeSelectForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="Views/Pages/Page?View.cs;Views/Parts/Part?Control.cs">
+    <Compile Update="Views/Parts/Part?Control.cs">
       <SubType>UserControl</SubType>
     </Compile>
   </ItemGroup>

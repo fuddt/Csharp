@@ -1,5 +1,7 @@
 #nullable disable
 
+using WinFormsReusableParts.Views.Parts;
+
 namespace WinFormsReusableParts.Forms;
 
 partial class ModeSelectForm
@@ -26,11 +28,17 @@ partial class ModeSelectForm
         radioButtonD = new RadioButton();
         radioButtonE = new RadioButton();
         panelPageHost = new Panel();
+        partX = new PartXControl();
+        partY = new PartYControl();
+        partZ = new PartZControl();
+        partW = new PartWControl();
+        partE = new PartEControl();
         groupBoxResult = new GroupBox();
         buttonGetCheckedTexts = new Button();
         textBoxResult = new TextBox();
         buttonClose = new Button();
         groupBoxModes.SuspendLayout();
+        panelPageHost.SuspendLayout();
         groupBoxResult.SuspendLayout();
         SuspendLayout();
         //
@@ -120,9 +128,55 @@ partial class ModeSelectForm
         panelPageHost.Name = "panelPageHost";
         panelPageHost.Size = new Size(568, 248);
         panelPageHost.TabIndex = 1;
-        panelPageHost.AutoScroll = false;
+        panelPageHost.AutoScroll = true;
+        panelPageHost.AutoScrollMargin = new Size(16, 16);
         panelPageHost.BorderStyle = BorderStyle.FixedSingle;
         panelPageHost.Dock = DockStyle.Fill;
+        panelPageHost.Controls.Add(partX);
+        panelPageHost.Controls.Add(partY);
+        panelPageHost.Controls.Add(partZ);
+        panelPageHost.Controls.Add(partW);
+        panelPageHost.Controls.Add(partE);
+        //
+        // partX
+        //
+        partX.Location = new Point(16, 16);
+        partX.Name = "partX";
+        partX.Size = new Size(356, 90);
+        partX.TabIndex = 0;
+        partX.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        //
+        // partY
+        //
+        partY.Location = new Point(16, 118);
+        partY.Name = "partY";
+        partY.Size = new Size(356, 60);
+        partY.TabIndex = 1;
+        partY.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        //
+        // partZ
+        //
+        partZ.Location = new Point(16, 190);
+        partZ.Name = "partZ";
+        partZ.Size = new Size(356, 60);
+        partZ.TabIndex = 2;
+        partZ.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        //
+        // partW
+        //
+        partW.Location = new Point(16, 262);
+        partW.Name = "partW";
+        partW.Size = new Size(356, 60);
+        partW.TabIndex = 3;
+        partW.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        //
+        // partE
+        //
+        partE.Location = new Point(16, 334);
+        partE.Name = "partE";
+        partE.Size = new Size(356, 78);
+        partE.TabIndex = 4;
+        partE.Anchor = AnchorStyles.Top | AnchorStyles.Left;
         //
         // groupBoxResult
         //
@@ -190,6 +244,7 @@ partial class ModeSelectForm
         Controls.Add(groupBoxModes);
         groupBoxModes.ResumeLayout(false);
         groupBoxModes.PerformLayout();
+        panelPageHost.ResumeLayout(false);
         groupBoxResult.ResumeLayout(false);
         groupBoxResult.PerformLayout();
         ResumeLayout(false);
@@ -204,6 +259,11 @@ partial class ModeSelectForm
     private RadioButton radioButtonD;
     private RadioButton radioButtonE;
     private Panel panelPageHost;
+    private PartXControl partX;
+    private PartYControl partY;
+    private PartZControl partZ;
+    private PartWControl partW;
+    private PartEControl partE;
     private GroupBox groupBoxResult;
     private Button buttonGetCheckedTexts;
     private TextBox textBoxResult;

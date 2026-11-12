@@ -1,25 +1,30 @@
 using WinFormsReusableParts.Contracts;
-using WinFormsReusableParts.Controllers;
-using WinFormsReusableParts.Models;
-using WinFormsReusableParts.Views.Pages;
+using WinFormsReusableParts.Views.Parts;
 
 namespace WinFormsReusableParts.Forms;
 
 public partial class ModeSelectForm : Form
 {
-    private readonly IReadOnlyModeModel readOnlyModel;
-    private readonly ModeController controller;
-    private UserControl? currentPage;
-    private RadioButton? currentMode;
+    private readonly Control[] allParts;
+    private string? currentMode;
 
     public ModeSelectForm()
     {
         InitializeComponent();
+        allParts = [partX, partY, partZ, partW, partE];
+    }
 
-        // このダイアログを閉じるまで、どのページも同じModelを使う。
-        var model = new ModeModel();
-        readOnlyModel = model;
-        controller = new ModeController(model);
+    /// <summary>
+    /// ウィンドウ全体を合成バッファで描画することで、コントロールの配置変更や切り替え時のちらつきを完全に抑止します。
+    /// </summary>
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            CreateParams cp = base.CreateParams;
+            cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED
+            return cp;
+        }
     }
 
     protected override void OnLoad(EventArgs e)
@@ -31,61 +36,57 @@ public partial class ModeSelectForm : Form
             var selected = groupBoxModes.Controls.OfType<RadioButton>()
                 .FirstOrDefault(button => button.Checked) ?? radioButtonA;
             selected.Checked = true;
-            ShowPage(selected);
+            ApplyMode(selected.Tag as string ?? "A");
         }
     }
 
     private void ModeRadioButton_CheckedChanged(object? sender, EventArgs e)
     {
-        // 初期化中の通知と、選択が外れた側の通知は処理しない。
-        if (currentMode is not null && sender is RadioButton { Checked: true } selected)
+        // 選択が外れた側の通知はスキップし、ONになった側だけを処理する
+        if (sender is RadioButton { Checked: true } selected)
         {
-            ShowPage(selected);
+            ApplyMode(selected.Tag as string ?? "A");
         }
     }
 
-    private void ShowPage(RadioButton selected)
+    private Control[] GetControlsForMode(string mode) => mode switch
     {
-        if (selected == currentMode)
+        "A" => [partX, partY],
+        "B" => [partX, partZ],
+        "C" => [partW, partX], // CはWが上、Xが下
+        "D" => [partY, partZ],
+        "E" => [partE, partX], // EはTextBoxが上、Xが下
+        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "未登録のモードです。")
+    };
+
+    private void ApplyMode(string mode)
+    {
+        if (mode == currentMode)
         {
             return;
         }
 
+        var activeControls = GetControlsForMode(mode);
+
         panelPageHost.SuspendLayout();
         try
         {
-            UserControl? nextPage = null;
-            try
+            // 1. すべての部品を一旦非表示にする（破棄はせず、状態も保持）
+            foreach (var part in allParts)
             {
-                // 新しいページの生成・追加が成功するまで、現在のページを残す。
-                nextPage = CreatePage(selected.Tag as string);
-                nextPage.Dock = DockStyle.Fill;
-                panelPageHost.Controls.Add(nextPage);
-            }
-            catch (Exception error)
-            {
-                // 追加の途中で失敗した場合も、Disposeで候補を親から外す。
-                nextPage?.Dispose();
-                if (currentMode is null)
-                {
-                    throw;
-                }
-
-                // 選択を戻す通知は冒頭の同一モード判定で止まる。
-                currentMode.Checked = true;
-                textBoxResult.Text = $"ページを開けませんでした。{Environment.NewLine}{error.Message}";
-                return;
+                part.Visible = false;
             }
 
-            var previousPage = currentPage;
-            currentPage = nextPage;
-            currentMode = selected;
-            if (previousPage is not null)
+            // 2. このモードに必要な部品だけを、指定された順序で上から隙間なく配置して表示する
+            int top = 16;
+            foreach (var control in activeControls)
             {
-                panelPageHost.Controls.Remove(previousPage);
-                previousPage.Dispose();
+                control.Location = new Point(16, top);
+                control.Visible = true;
+                top += control.Height + 12;
             }
 
+            currentMode = mode;
             textBoxResult.Clear();
         }
         finally
@@ -94,27 +95,27 @@ public partial class ModeSelectForm : Form
         }
     }
 
-    private UserControl CreatePage(string? mode)
-    {
-        return mode switch
-        {
-            "A" => new PageAView(),
-            "B" => new PageBView(),
-            "C" => new PageCView(),
-            "D" => new PageDView(),
-            "E" => new PageEView(readOnlyModel, controller),
-            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "未登録のモードです。")
-        };
-    }
-
     private void ButtonGetCheckedTexts_Click(object? sender, EventArgs e)
     {
-        if (currentPage is ICheckedTextPage page)
+        if (currentMode is null)
         {
-            var texts = page.GetCheckedTexts();
-            textBoxResult.Text = texts.Count == 0
-                ? "チェックされた項目はありません。"
-                : string.Join(Environment.NewLine, texts);
+            return;
         }
+
+        var activeControls = GetControlsForMode(currentMode);
+        var texts = new List<string>();
+
+        // 現在表示されている部品の中から、チェック項目を持つものだけを順次集約
+        foreach (var control in activeControls)
+        {
+            if (control is ICheckedTextSource source)
+            {
+                texts.AddRange(source.GetCheckedTexts());
+            }
+        }
+
+        textBoxResult.Text = texts.Count == 0
+            ? "チェックされた項目はありません。"
+            : string.Join(Environment.NewLine, texts);
     }
 }
