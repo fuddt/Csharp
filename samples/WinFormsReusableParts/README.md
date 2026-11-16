@@ -110,7 +110,7 @@ private Control[] GetControlsForMode(string mode) => mode switch
     _ => []
 };
 
-// 2. 指定された順序で上から隙間なく整列
+// 2. 指定された順序で上から隙間なく整列し、Tab順も同期させる
 private void ApplyMode(string mode)
 {
     var activeControls = GetControlsForMode(mode);
@@ -122,13 +122,16 @@ private void ApplyMode(string mode)
         foreach (var part in allParts)
         {
             part.Visible = false;
+            part.TabIndex = activeControls.Length;
         }
 
         // 必要な部品だけを、指定順に上から詰めて配置・表示
         int top = 16;
+        int tabIndex = 0;
         foreach (var control in activeControls)
         {
             control.Location = new Point(16, top);
+            control.TabIndex = tabIndex++; // 表示順に合わせて TabIndex を振り直す
             control.Visible = true;
             top += control.Height + 12; // 12pxの余白を空けて次へ
         }
@@ -140,7 +143,17 @@ private void ApplyMode(string mode)
 }
 ```
 
-これにより、複雑なグリッドコンテナ（TableLayoutPanel等）に頼ることなく、シンプルな `Location` 指定だけで美しい上詰め配置を実現しています。
+これにより、複雑なグリッドコンテナ（TableLayoutPanel等）に頼ることなく、シンプルな `Location` 指定だけで美しい上詰め配置と自然なキーボード操作を両立しています。
+
+### Tabキーの移動順序（`TabIndex`）が逆転しない仕組み
+
+デザイナー上の固定値（`partX` が 0、`partW` が 3、`partE` が 4）のままだと、モード C（Wが上・Xが下）やモード E（TextBoxが上・Xが下）のときに、**見た目と Tab キーの移動順が逆転**してしまいます。
+
+そこで `ApplyMode()` の配置ループ内で `control.TabIndex = tabIndex++;` を同時に設定しています。
+
+- **`TabIndex` は親コンテナごとの相対順位**：`panelPageHost` 内の部品に `0, 1` を振り直しても、親フォーム側にある `groupBoxModes`（`0`）や `groupBoxResult`（`2`）のタブ順には影響しません。
+- **部品内部のタブ順は独立**：各 `UserControl` 内部の CheckBox 等の順番は部品側（例：`PartXControl.Designer.cs`）の `TabIndex` がそのまま維持されます。
+- **非表示部品の扱い**：`Visible = false` の部品は WinForms によりタブ移動から自動スキップされます。さらに非表示部品へ `activeControls.Length` を割り当てることで、番号の重複も防いでいます。
 
 ---
 

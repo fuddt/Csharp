@@ -20,7 +20,7 @@ internal static class Program
 
             WithSettingsDialog(main, dialog => ExerciseSettingsDialog(dialog));
 
-            Console.WriteLine("PASS: modal launch and close, A-E fixed-part visibility toggles, slot layouts, 25 repeated switches, current-visible snapshots, shared state persistence, and E text preservation.");
+            Console.WriteLine("PASS: modal launch and close, A-E fixed-part visibility toggles, slot layouts, dynamic tab order, 25 repeated switches, current-visible snapshots, shared state persistence, and E text preservation.");
             return 0;
         }
         catch (Exception error)
@@ -52,6 +52,7 @@ internal static class Program
         Require(Find<RadioButton>(dialog, "radioButtonA").Checked, "A is selected on open");
         Require(partX.Visible && partY.Visible && !partZ.Visible && !partW.Visible && !partE.Visible, "A shows X and Y only");
         Require(partX.Top < partY.Top, "A layout puts X above Y");
+        Require(partX.TabIndex == 0 && partY.TabIndex == 1, "A tab order matches top-down layout (X -> Y)");
 
         // AでXとYにチェックを入れる
         checkPreview.Checked = true;
@@ -63,6 +64,7 @@ internal static class Program
         Find<RadioButton>(dialog, "radioButtonB").Checked = true;
         Require(partX.Visible && partZ.Visible && !partY.Visible && !partW.Visible && !partE.Visible, "B shows X and Z only");
         Require(partX.Top < partZ.Top, "B layout puts X above Z");
+        Require(partX.TabIndex == 0 && partZ.TabIndex == 1, "B tab order matches top-down layout (X -> Z)");
         Require(checkPreview.Checked, "Shared setting: X preview check persists when switching to B");
         Require(result.Text == "", "Switching modes clears the previous result");
 
@@ -76,9 +78,14 @@ internal static class Program
         Require(result.Lines.SequenceEqual([checkPreview.Text, checkTime.Text]), "B gathers X and Z");
 
         // 3. モードCへ切り替え (Wが上、Xが下)
-        Find<RadioButton>(dialog, "radioButtonC").Checked = true;
+        var radioC = Find<RadioButton>(dialog, "radioButtonC");
+        radioC.Checked = true;
         Require(partW.Visible && partX.Visible && !partY.Visible && !partZ.Visible && !partE.Visible, "C shows W and X only");
         Require(partW.Top < partX.Top, "C layout puts W above X");
+        Require(partW.TabIndex == 0 && partX.TabIndex == 1, "C tab order matches top-down layout (W -> X)");
+        dialog.ActiveControl = radioC;
+        Require(ReferenceEquals(AdvanceFocusByTab(dialog), checkGuide), "Tab from mode C radio enters W first");
+        Require(ReferenceEquals(AdvanceFocusByTab(dialog), checkPreview), "Tab from W advances to X");
         checkGuide.Checked = true;
         getChecked.PerformClick();
         Require(result.Lines.SequenceEqual([checkGuide.Text, checkPreview.Text]), "C gathers W and X in top-down display order");
@@ -87,13 +94,19 @@ internal static class Program
         Find<RadioButton>(dialog, "radioButtonD").Checked = true;
         Require(partY.Visible && partZ.Visible && !partX.Visible && !partW.Visible && !partE.Visible, "D shows Y and Z only");
         Require(partY.Top < partZ.Top, "D layout puts Y above Z");
+        Require(partY.TabIndex == 0 && partZ.TabIndex == 1, "D tab order matches top-down layout (Y -> Z)");
         getChecked.PerformClick();
         Require(result.Lines.SequenceEqual([checkValidate.Text, checkTime.Text]), "D gathers Y and Z (both persisted from earlier checks)");
 
         // 5. モードEへ切り替え (TextBoxが上、Xが下)
-        Find<RadioButton>(dialog, "radioButtonE").Checked = true;
+        var radioE = Find<RadioButton>(dialog, "radioButtonE");
+        radioE.Checked = true;
         Require(partE.Visible && partX.Visible && !partY.Visible && !partZ.Visible && !partW.Visible, "E shows E and X only");
         Require(partE.Top < partX.Top, "E layout puts E (TextBox) above X");
+        Require(partE.TabIndex == 0 && partX.TabIndex == 1, "E tab order matches top-down layout (E -> X)");
+        dialog.ActiveControl = radioE;
+        Require(ReferenceEquals(AdvanceFocusByTab(dialog), textE), "Tab from mode E radio enters TextBox first");
+        Require(ReferenceEquals(AdvanceFocusByTab(dialog), checkPreview), "Tab from E TextBox advances to X");
         textE.Text = "Hello WinForms Persisted";
         getChecked.PerformClick();
         Require(result.Lines.SequenceEqual([checkPreview.Text]), "E gathers only X check box (TextBox is text input, not check)");
@@ -167,6 +180,26 @@ internal static class Program
             throw new InvalidOperationException("Settings dialog smoke test failed.", failure);
         }
         Require(openedForm is ModeSelectForm { IsDisposed: true }, "Main disposes dialog after ShowDialog completes");
+    }
+
+    private static Control AdvanceFocusByTab(ContainerControl root)
+    {
+        var current = DeepActiveControl(root)
+            ?? throw new InvalidOperationException("FAIL: No active control before Tab advance");
+        Require(root.SelectNextControl(current, forward: true, tabStopOnly: true, nested: true, wrap: true),
+            "SelectNextControl advances focus");
+        return DeepActiveControl(root)
+            ?? throw new InvalidOperationException("FAIL: No active control after Tab advance");
+    }
+
+    private static Control? DeepActiveControl(ContainerControl root)
+    {
+        Control? current = root.ActiveControl;
+        while (current is ContainerControl nested && nested.ActiveControl is not null)
+        {
+            current = nested.ActiveControl;
+        }
+        return current;
     }
 
     private static T Find<T>(Control root, string name) where T : Control

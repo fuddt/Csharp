@@ -58,21 +58,21 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     Select["RadioButton を切り替え (例: A → C)"] --> Suspend["panelPageHost.SuspendLayout()"]
-    Suspend --> HideAll["全部品を一旦非表示 (Visible = false)"]
+    Suspend --> HideAll["全部品を一旦非表示 (Visible = false / TabIndex 退避)"]
     HideAll --> GetActive["GetControlsForMode('C') -> [partW, partX]"]
-    GetActive --> Loop["上から順に Location を再計算して Visible = true に設定"]
+    GetActive --> Loop["上から順に Location と TabIndex (0, 1...) を設定して Visible = true"]
     Loop --> Resume["panelPageHost.ResumeLayout(true)"]
     Resume --> ClearResult["textBoxResult をクリア"]
 ```
 
-### 隙間の自動詰めと配置順の制御
-- **モード A**: `[partX, partY]`（Xが上、Yが下）
-- **モード B**: `[partX, partZ]`（Xが上、Zが下）
-- **モード C**: `[partW, partX]`（**Wが上、Xが下**）
-- **モード D**: `[partY, partZ]`（Yが上、Zが下）
-- **モード E**: `[partE, partX]`（**TextBoxが上、Xが下**）
+### 隙間の自動詰めと配置順・Tab順の制御
+- **モード A**: `[partX, partY]`（Xが上、Yが下 / Tab順: X → Y）
+- **モード B**: `[partX, partZ]`（Xが上、Zが下 / Tab順: X → Z）
+- **モード C**: `[partW, partX]`（**Wが上、Xが下** / Tab順: **W → X**）
+- **モード D**: `[partY, partZ]`（Yが上、Zが下 / Tab順: Y → Z）
+- **モード E**: `[partE, partX]`（**TextBoxが上、Xが下** / Tab順: **TextBox → X**）
 
-表示する部品を配列で宣言し、上から順に `Location = new Point(16, top); top += control.Height + 12;` と配置していくため、非表示になった部品の隙間が空くことなく、常に上詰めで美しいレイアウトが保たれます。
+表示する部品を配列で宣言し、上から順に `Location` と `TabIndex = tabIndex++` を割り当てていくため、非表示になった部品の隙間が空くことなく上詰めで配置され、モードC・Eのように部品順が入れ替わるケースでも常に上から下への自然なTab移動が保たれます。
 
 ---
 

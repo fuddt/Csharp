@@ -75,13 +75,16 @@ public partial class ModeSelectForm : Form
             foreach (var part in allParts)
             {
                 part.Visible = false;
+                part.TabIndex = activeControls.Length;
             }
 
-            // 2. このモードに必要な部品だけを、指定された順序で上から隙間なく配置して表示する
+            // 2. このモードに必要な部品だけを、指定された順序で上から隙間なく配置し、Tab順も同期させる
             int top = 16;
+            int tabIndex = 0;
             foreach (var control in activeControls)
             {
                 control.Location = new Point(16, top);
+                control.TabIndex = tabIndex++;
                 control.Visible = true;
                 top += control.Height + 12;
             }

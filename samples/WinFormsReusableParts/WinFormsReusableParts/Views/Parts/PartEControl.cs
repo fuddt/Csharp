@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace WinFormsReusableParts.Views.Parts;
 
 public partial class PartEControl : UserControl
@@ -8,6 +10,8 @@ public partial class PartEControl : UserControl
     }
 
     /// <summary>入力されたテキストを取得または設定します。</summary>
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string InputText
     {
         get => textBoxLastEInput.Text;

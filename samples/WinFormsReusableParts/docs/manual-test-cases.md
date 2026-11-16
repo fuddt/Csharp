@@ -16,6 +16,7 @@ Windowsで [WinFormsReusableParts.sln](../WinFormsReusableParts.sln) をVisual S
 | AC-10 | `Views/Parts/PartXControl.cs` のデザイナーを開く | 部品単体のGroupBoxやCheckBoxを個別に編集でき、全モードへ即座に反映される |
 | AC-11 | WindowsでReleaseビルドし、下記のSmokeTestsを実行する | ビルドに成功し、`PASS:` で始まる行を出力して終了コード0を返す |
 | AC-12 | READMEの設計解説を読む | 破棄再生成方式と常駐可視性切替方式の比較、ちらつき解消の仕組み、状態管理の違いを理解できる |
+| AC-13 | モードCとモードEを選んだ状態で、ラジオボタンからTabキーを押す | モードCでは W → X、モードEでは TextBox → X の順に、見た目どおり上から下へフォーカスが移動する |
 
 ---
 
@@ -34,4 +35,4 @@ dotnet build WinFormsReusableParts.sln --configuration Release --warnaserror
 dotnet run --project SmokeTests/SmokeTests.csproj --configuration Release --no-build
 ```
 
-SmokeTestsは実際のWinFormsダイアログを開き、A〜Eの表示切り替え、配置順（CでのW→X、EでのTextBox→X）、Xのチェック状態の保持、現在表示中部品のみの取得集約、Eのテキスト保持、25回連続切り替えを自動検証します。
+SmokeTestsは実際のWinFormsダイアログを開き、A〜Eの表示切り替え、配置順（CでのW→X、EでのTextBox→X）、表示順と同期したTab順、Xのチェック状態の保持、現在表示中部品のみの取得集約、Eのテキスト保持、25回連続切り替えを自動検証します。
