@@ -1,0 +1,32 @@
+name: WinForms Esc focus return sample
+
+on:
+  push:
+    paths:
+      - 'samples/WinFormsEscFocusReturn/**'
+      - '.github/workflows/winforms-esc-focus-return.yml'
+  pull_request:
+    paths:
+      - 'samples/WinFormsEscFocusReturn/**'
+      - '.github/workflows/winforms-esc-focus-return.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-smoke-test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: samples/WinFormsEscFocusReturn
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build solution
+        run: dotnet build WinFormsEscFocusReturn.sln --configuration Release --warnaserror
+      - name: Exercise modeless open and Esc focus return on Windows
+        run: dotnet run --project SmokeTests/SmokeTests.csproj --configuration Release --no-build
